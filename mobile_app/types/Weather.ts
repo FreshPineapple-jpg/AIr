@@ -25,3 +25,10 @@ export interface WeatherApiResponse {
 export interface AirQualityApiResponse {
     current: AirQualityData;
 }
+
+export interface SafetyZone {
+    latitude: number;
+    longitude: number;
+    radius: number;
+    isSafe: boolean;
+}
