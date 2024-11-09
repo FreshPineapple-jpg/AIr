@@ -16,7 +16,7 @@ export default function LandingPage() {
       resizeMode="cover"
     >
       <YStack flex={1} paddingTop={insets.top} paddingBottom={insets.bottom}>
-        <Link href="/home" asChild>
+        <Link href="signup" asChild>
           <Stack
             flex={1}
             justifyContent="flex-end"

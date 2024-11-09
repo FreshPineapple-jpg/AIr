@@ -12,6 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "entryPoint": "./App.tsx",
     "ios": {
       "supportsTablet": true
     },
