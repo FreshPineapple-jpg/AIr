@@ -1,9 +1,12 @@
 from typing import Union, Annotated
 
 from fastapi import FastAPI, Body
+from fastapi.responses import JSONResponse
 
-from app.models.schemas import PredictionResponse, EnvironmentalData
+from app.models.schemas import PredictionResponse, PredictionRequest
 from app.services.predictor import MLService
+from app.services.weather import WeatherService
+from datetime import datetime
 
 app = FastAPI()
 
@@ -25,10 +28,31 @@ def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(data: EnvironmentalData) -> PredictionResponse:
+async def predict(data: PredictionRequest):
     """Train the model with the provided data"""
+
+
     ml_service = MLService()
     ml_service.train(mock_records)  # Train with mock records
+
+
+    weather_service = WeatherService()
+    input_datetime = data.target_datetime
+
+    target_datatime = datetime(input_datetime['year'], input_datetime['month'], input_datetime['day'], input_datetime['hour'])
+    tmp, aq = await weather_service.get_weather_and_air_quality(
+        latitude=data.latitude,
+        longitude=data.longitude,
+        target_datetime=target_datatime
+    )
+
+    data = {
+        "temperature": tmp,
+        "pm10": aq['pm10'],
+        "carbon_dioxide": aq['carbon_dioxide'],
+        "nitrogen_dioxide": aq['nitrogen_dioxide'],
+        "dust": aq['dust']
+    }
 
     prediction, probability = ml_service.predict(data)
 
@@ -36,3 +60,17 @@ async def predict(data: EnvironmentalData) -> PredictionResponse:
         prediction=prediction,  # Return prediction (True/False)
         probability=probability  # Return probability for class 1 (asthma attack)
     )
+
+@app.post('/weather')
+async def get_weather(data: dict = Body(...)):
+    weather_service = WeatherService()
+    input_datetime = data['target_datetime']
+
+    target_datatime = datetime(input_datetime['year'], input_datetime['month'], input_datetime['day'], input_datetime['hour'])
+    tmp, aq = await weather_service.get_weather_and_air_quality(
+        latitude=data['latitude'],
+        longitude=data['longitude'],
+        target_datetime=target_datatime
+    )
+
+    return {"Air Quality": aq, "Temperature": tmp}

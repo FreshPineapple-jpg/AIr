@@ -1,14 +1,14 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from typing import List, Tuple, Dict
-from app.models.schemas import EnvironmentalData
+from app.models.schemas import EnvironmentalData, ModelTrainingData
 
 class MLService:
     def __init__(self):
         self.model = RandomForestClassifier()
         self.feature_columns = ['temperature', 'pm10', 'carbon_dioxide', 'nitrogen_dioxide', 'dust']
 
-    def train(self, records: List[Dict]) -> None:
+    def train(self, records: List[ModelTrainingData]) -> None:
         """Train the model with the provided records"""
         if not records:
             raise ValueError("No training data available")
@@ -21,6 +21,7 @@ class MLService:
         print("Model trained")
 
     def predict(self, data: EnvironmentalData) -> Tuple[bool, float]:
+        print(f"Predicting asthma attack with data: {data}")
         """Make a prediction"""
         # Ensure the input data is in the correct format (a single row DataFrame with features)
         input_data = pd.DataFrame([{
