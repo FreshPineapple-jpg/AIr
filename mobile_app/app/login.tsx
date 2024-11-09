@@ -8,7 +8,6 @@ import {
   styled,
   Stack,
   Label,
-  View,
 } from "tamagui";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react-native";
 import {
@@ -17,13 +16,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
-import { FIREBASE_AUTH } from "../../firebase"; // Adjust path as needed
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { FIREBASE_AUTH } from "@/firebase";
+import { Link } from "expo-router";
 
 const StyledInput = styled(Input, {
   height: 56,
@@ -58,11 +53,10 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
 
   const auth = FIREBASE_AUTH;
 
-  const handleEmailAuth = async () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError("Please fill in all fields");
       return;
@@ -72,39 +66,10 @@ const LoginPage = () => {
     setError("");
 
     try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-      // Handle successful authentication
-      console.log("Successfully authenticated!");
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log("Successfully logged in!");
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleSignUp = () => {
-    console.log("Toggling Sign Up: ", isSignUp); // Debug log
-    setIsSignUp((prevState) => {
-      console.log("Prev state:", prevState); // Debug log
-      return !prevState;
-    });
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      // Handle successful Google sign-in
-      console.log("Successfully signed in with Google!", result.user);
-    } catch (err) {
-      setError(err.message);
+      setError((err as any).message);
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +80,7 @@ const LoginPage = () => {
       <ScrollView>
         <YStack f={1} padding="$4" backgroundColor="$background">
           <YStack height={100} />
+
           {/* Logo Section */}
           <YStack alignItems="center" marginBottom="$8">
             <Text
@@ -124,10 +90,7 @@ const LoginPage = () => {
               letterSpacing={-1}
               fontFamily={Platform.OS === "ios" ? "SF Pro Display" : "Roboto"}
             >
-              AI
-              <Text color="$gray11" fontWeight="400">
-                R
-              </Text>
+              AIR
             </Text>
           </YStack>
 
@@ -139,7 +102,7 @@ const LoginPage = () => {
               color="$gray12"
               fontFamily={Platform.OS === "ios" ? "SF Pro Display" : "Roboto"}
             >
-              {isSignUp ? "Sign Up" : "Sign In"}
+              Login
             </Text>
           </YStack>
 
@@ -151,10 +114,10 @@ const LoginPage = () => {
           )}
 
           {/* Form */}
-          <YStack>
+          <YStack space="$4">
             {/* Email Input */}
             <Stack>
-              <Label htmlFor="email" color="$gray11">
+              <Label htmlFor="email-input" color="$gray11">
                 Email
               </Label>
               <XStack alignItems="center" position="relative">
@@ -162,7 +125,7 @@ const LoginPage = () => {
                   <Mail size={20} color="gray" />
                 </IconButton>
                 <StyledInput
-                  id="email"
+                  id="email-input"
                   flex={1}
                   value={email}
                   onChangeText={setEmail}
@@ -175,7 +138,7 @@ const LoginPage = () => {
 
             {/* Password Input */}
             <Stack>
-              <Label htmlFor="password" color="$gray11">
+              <Label htmlFor="password-input" color="$gray11">
                 Password
               </Label>
               <XStack alignItems="center" position="relative">
@@ -183,7 +146,7 @@ const LoginPage = () => {
                   <Lock size={20} color="gray" />
                 </IconButton>
                 <StyledInput
-                  id="password"
+                  id="password-input"
                   flex={1}
                   value={password}
                   onChangeText={setPassword}
@@ -203,66 +166,41 @@ const LoginPage = () => {
               </XStack>
             </Stack>
 
-            {/* Email/Password Auth Button */}
+            {/* Login Button */}
             <Button
               size="$6"
               theme="blue"
               borderRadius="$4"
               marginTop="$4"
-              onPress={handleEmailAuth}
+              onPress={handleLogin}
               disabled={isLoading}
               pressStyle={{ opacity: 0.8 }}
               animation="quick"
             >
               <Text color="white" fontWeight="600">
-                {isLoading ? "Processing..." : isSignUp ? "Sign Up" : "Login"}
+                {isLoading ? "Logging in..." : "Login"}
               </Text>
             </Button>
 
-            {/* Google Sign In Button */}
-            <Button
-              size="$6"
-              theme="gray"
-              borderRadius="$4"
-              marginTop="$4"
-              onPress={handleGoogleSignIn}
-              disabled={isLoading}
-              pressStyle={{ opacity: 0.8 }}
-              animation="quick"
-            >
-              <Text color="$gray12" fontWeight="600">
-                Continue with Google
-              </Text>
-            </Button>
-
-            {/* Terms and Privacy */}
-            <Text
-              textAlign="center"
-              color="$gray11"
-              fontSize={14}
-              lineHeight={20}
-              marginTop="$4"
-            >
-              By signing up, you agree to our{" "}
-              <Text color="$blue9" fontWeight="500">
-                Terms of Service
-              </Text>{" "}
-              and{" "}
-              <Text color="$blue9" fontWeight="500">
-                Privacy Policy
-              </Text>
-            </Text>
-
-            {/* Toggle Sign Up/Sign In */}
+            {/* Sign Up Link */}
             <XStack justifyContent="center" marginTop="$4">
-              <Text color="$gray11" fontSize={14} onPress={handleToggleSignUp}>
-                {isSignUp
-                  ? "Already have an account? "
-                  : "Don't have an account? "}
-                <Text color="$blue9" fontWeight="600">
-                  {isSignUp ? "Sign In" : "Sign Up"}
-                </Text>
+              <Text color="$gray11" fontSize={14}>
+                Don't have an account?{" "}
+                <Link href="/signup">
+                  <Text color="$blue9" fontWeight="600">
+                    Sign Up
+                  </Text>
+                </Link>
               </Text>
+            </XStack>
+
+            {/* Forgot Password Link */}
+            <XStack justifyContent="center" marginTop="$2">
+              <Link href="/forgot-password">
+                <Text color="$blue9" fontSize={14} fontWeight="500">
+                  Forgot Password?
+                </Text>
+              </Link>
             </XStack>
           </YStack>
         </YStack>

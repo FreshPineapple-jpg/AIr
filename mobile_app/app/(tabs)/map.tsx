@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Animated,
-} from "react-native";
-import MapView, { Marker, Callout, Circle } from "react-native-maps";
+import { YStack, Button, Sheet, Input, XStack, Text, Form } from "tamagui";
+import MapView, { Marker } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {
   WeatherApiResponse,
   AirQualityApiResponse,
   WeatherAPIData,
-} from "@/types/Weather";
-import { Ionicons } from "@expo/vector-icons";
-import { styles } from "@/styles/MapStyles";
-import { CollapsibleSection } from "@/components/CollapsibleCard";
-import { DataCard } from "@/components/DataCard";
-import { SafetyZone } from "@/types/Weather";
+  SafetyZone,
+} from "@/types/map/Types";
+import { SearchBar } from "@/components/SearchBar";
+import { WeatherDataSheet } from "@/components/DataSheet";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
+import { renderSafetyZone } from "@/components/SafetyZone";
+
+interface DateTimeInputs {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+}
 
 // Mock ML model prediction function
 // In a real application, this would make an API call to your ML service
@@ -58,6 +58,17 @@ export default function WeatherMap() {
     longitude: number;
   } | null>(null);
   const [safetyZone, setSafetyZone] = useState<SafetyZone | null>(null);
+  const [position, setPosition] = useState(0);
+
+  // New state for form
+  const [showForm, setShowForm] = useState(false);
+  const [place, setPlace] = useState("");
+  const [dateTime, setDateTime] = useState<DateTimeInputs>({
+    year: "",
+    month: "",
+    day: "",
+    hour: "",
+  });
 
   useEffect(() => {
     getCurrentLocation();
@@ -147,58 +158,24 @@ export default function WeatherMap() {
     }
   };
 
-  const renderSafetyZone = () => {
-    if (!safetyZone) return null;
-
-    const baseColor = safetyZone.isSafe ? "#00E400" : "#FF0000"; // Green for safe, Red for unsafe
-    const gradientLayers = 5;
-
-    return Array.from({ length: gradientLayers }).map((_, index) => {
-      const ratio = (gradientLayers - index) / gradientLayers;
-      return (
-        <Circle
-          key={index}
-          center={{
-            latitude: safetyZone.latitude,
-            longitude: safetyZone.longitude,
-          }}
-          radius={
-            safetyZone.radius * ((gradientLayers - index) / gradientLayers)
-          }
-          fillColor={`${baseColor}${Math.round(ratio * 40)
-            .toString(16)
-            .padStart(2, "0")}`}
-          strokeColor={index === 0 ? baseColor : "transparent"}
-          strokeWidth={2}
-          zIndex={1000 - index}
-        />
-      );
-    });
+  const handleAddEntry = () => {
+    // Will implement later
+    setShowForm(false);
+    setPlace("");
+    setDateTime({ year: "", month: "", day: "", hour: "" });
   };
 
   return (
-    <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search location..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.locationButton}
-          onPress={getCurrentLocation}
-        >
-          <Text style={styles.searchButtonText}>📍</Text>
-        </TouchableOpacity>
-      </View>
+    <YStack flex={1}>
+      <SearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        onLocationPress={getCurrentLocation}
+      />
 
       <MapView
-        style={styles.map}
+        style={{ width: "100%", height: "100%" }}
         region={{
           latitude:
             selectedLocation?.latitude ?? location?.coords.latitude ?? 0,
@@ -208,19 +185,122 @@ export default function WeatherMap() {
           longitudeDelta: 0.0421,
         }}
       >
-        {renderSafetyZone()}
-
+        {renderSafetyZone({ safetyZone })}
         {selectedLocation && <Marker coordinate={selectedLocation} />}
       </MapView>
 
-      {/* Data Display */}
-      <DataCard weatherData={weatherData} safetyZone={safetyZone} />
+      <WeatherDataSheet
+        weatherData={weatherData}
+        isSafe={safetyZone?.isSafe ?? false}
+      />
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
-      )}
-    </View>
+      {/* Floating Action Button */}
+      <Button
+        position="absolute"
+        bottom={100}
+        right={16}
+        size="$6"
+        circular
+        backgroundColor="$blue10"
+        pressStyle={{ scale: 0.95 }}
+        onPress={() => setShowForm(true)}
+        icon={<Ionicons name="add" size={24} color="white" />}
+      />
+
+      {/* Entry Form Sheet */}
+      <Sheet
+        modal
+        open={showForm}
+        onOpenChange={setShowForm}
+        snapPoints={[50]}
+        dismissOnSnapToBottom
+      >
+        <Sheet.Overlay />
+        <Sheet.Frame padding="$4">
+          <Sheet.Handle />
+          <YStack space="$4">
+            <Text fontSize="$6" fontWeight="bold">
+              Add Asthma Attack Entry
+            </Text>
+            <Form onSubmit={handleAddEntry}>
+              <Input
+                placeholder="Enter location"
+                value={place}
+                onChangeText={setPlace}
+                marginBottom="$2"
+              />
+
+              <XStack space="$2" marginBottom="$2">
+                <Input
+                  flex={1}
+                  placeholder="Year"
+                  value={dateTime.year}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      year: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={4}
+                />
+                <Input
+                  flex={1}
+                  placeholder="Month (1-12)"
+                  value={dateTime.month}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      month: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+              </XStack>
+
+              <XStack space="$2" marginBottom="$4">
+                <Input
+                  flex={1}
+                  placeholder="Day (1-31)"
+                  value={dateTime.day}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      day: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+                <Input
+                  flex={1}
+                  placeholder="Hour (0-23)"
+                  value={dateTime.hour}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      hour: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+              </XStack>
+
+              <XStack space="$2" justifyContent="flex-end">
+                <Button onPress={() => setShowForm(false)} variant="outlined">
+                  Cancel
+                </Button>
+                <Button theme="active" onPress={handleAddEntry}>
+                  Add Entry
+                </Button>
+              </XStack>
+            </Form>
+          </YStack>
+        </Sheet.Frame>
+      </Sheet>
+      {loading && <LoadingOverlay />}
+    </YStack>
   );
 }
