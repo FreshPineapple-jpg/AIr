@@ -49,12 +49,10 @@ export interface SearchBarProps {
 
 export interface SafetyStatusProps {
   isSafe: boolean;
+  isMinimized?: boolean;
 }
 
 export interface WeatherDataSheetProps {
   weatherData: WeatherAPIData | null;
   isSafe: boolean;
-  position: number;
-  onPositionChange: (position: number) => void;
-  snapPoints?: number[];
 }

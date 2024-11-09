@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { YStack } from "tamagui";
+import { YStack, Button, Sheet, Input, XStack, Text, Form } from "tamagui";
 import MapView, { Marker } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {
   WeatherApiResponse,
@@ -12,6 +13,13 @@ import { SearchBar } from "@/components/SearchBar";
 import { WeatherDataSheet } from "@/components/DataSheet";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { renderSafetyZone } from "@/components/SafetyZone";
+
+interface DateTimeInputs {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+}
 
 // Mock ML model prediction function
 // In a real application, this would make an API call to your ML service
@@ -51,6 +59,16 @@ export default function WeatherMap() {
   } | null>(null);
   const [safetyZone, setSafetyZone] = useState<SafetyZone | null>(null);
   const [position, setPosition] = useState(0);
+
+  // New state for form
+  const [showForm, setShowForm] = useState(false);
+  const [place, setPlace] = useState("");
+  const [dateTime, setDateTime] = useState<DateTimeInputs>({
+    year: "",
+    month: "",
+    day: "",
+    hour: "",
+  });
 
   useEffect(() => {
     getCurrentLocation();
@@ -140,8 +158,11 @@ export default function WeatherMap() {
     }
   };
 
-  const handlePositionChange = (newPosition: number) => {
-    setPosition(newPosition);
+  const handleAddEntry = () => {
+    // Will implement later
+    setShowForm(false);
+    setPlace("");
+    setDateTime({ year: "", month: "", day: "", hour: "" });
   };
 
   return (
@@ -168,8 +189,117 @@ export default function WeatherMap() {
         {selectedLocation && <Marker coordinate={selectedLocation} />}
       </MapView>
 
-      <WeatherDataSheet weatherData={weatherData} isSafe={true} />
+      <WeatherDataSheet
+        weatherData={weatherData}
+        isSafe={safetyZone?.isSafe ?? false}
+      />
 
+      {/* Floating Action Button */}
+      <Button
+        position="absolute"
+        bottom={100}
+        right={16}
+        size="$6"
+        circular
+        backgroundColor="$blue10"
+        pressStyle={{ scale: 0.95 }}
+        onPress={() => setShowForm(true)}
+        icon={<Ionicons name="add" size={24} color="white" />}
+      />
+
+      {/* Entry Form Sheet */}
+      <Sheet
+        modal
+        open={showForm}
+        onOpenChange={setShowForm}
+        snapPoints={[50]}
+        dismissOnSnapToBottom
+      >
+        <Sheet.Overlay />
+        <Sheet.Frame padding="$4">
+          <Sheet.Handle />
+          <YStack space="$4">
+            <Text fontSize="$6" fontWeight="bold">
+              Add Asthma Attack Entry
+            </Text>
+            <Form onSubmit={handleAddEntry}>
+              <Input
+                placeholder="Enter location"
+                value={place}
+                onChangeText={setPlace}
+                marginBottom="$2"
+              />
+
+              <XStack space="$2" marginBottom="$2">
+                <Input
+                  flex={1}
+                  placeholder="Year"
+                  value={dateTime.year}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      year: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={4}
+                />
+                <Input
+                  flex={1}
+                  placeholder="Month (1-12)"
+                  value={dateTime.month}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      month: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+              </XStack>
+
+              <XStack space="$2" marginBottom="$4">
+                <Input
+                  flex={1}
+                  placeholder="Day (1-31)"
+                  value={dateTime.day}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      day: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+                <Input
+                  flex={1}
+                  placeholder="Hour (0-23)"
+                  value={dateTime.hour}
+                  onChangeText={(text) =>
+                    setDateTime({
+                      ...dateTime,
+                      hour: text.replace(/[^0-9]/g, ""),
+                    })
+                  }
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+              </XStack>
+
+              <XStack space="$2" justifyContent="flex-end">
+                <Button onPress={() => setShowForm(false)} variant="outlined">
+                  Cancel
+                </Button>
+                <Button theme="active" onPress={handleAddEntry}>
+                  Add Entry
+                </Button>
+              </XStack>
+            </Form>
+          </YStack>
+        </Sheet.Frame>
+      </Sheet>
       {loading && <LoadingOverlay />}
     </YStack>
   );

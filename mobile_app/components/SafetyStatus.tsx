@@ -3,11 +3,6 @@ import { Card, XStack, Text, useTheme } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
 import { SafetyStatusProps } from "@/types/map/Types";
 
-// SafetyStatus.tsx
-interface SafetyStatusProps {
-  isSafe: boolean;
-  isMinimized?: boolean;
-}
 export const SafetyStatus: React.FC<SafetyStatusProps> = ({
   isSafe,
   isMinimized = false,
@@ -40,11 +35,6 @@ export const SafetyStatus: React.FC<SafetyStatusProps> = ({
             {isSafe ? "SAFE ZONE" : "UNSAFE ZONE"}
           </Text>
         </XStack>
-        <Ionicons
-          name={isMinimized ? "chevron-up" : "chevron-down"}
-          size={24}
-          color={isSafe ? theme.green10.get() : theme.red10.get()}
-        />
       </XStack>
     </Card>
   );
