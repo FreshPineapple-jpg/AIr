@@ -1,12 +1,25 @@
 from typing import Union, Annotated
 
 from fastapi import FastAPI, Body
+from fastapi import HTTPException
+
 from fastapi.responses import JSONResponse
 
-from app.models.schemas import PredictionResponse, PredictionRequest
+from app.models.schemas import EnvironmentalData, PredictionResponse, PredictionRequest, ModelTrainingData
 from app.services.predictor import MLService
 from app.services.weather import WeatherService
+from app.firebase import FIREBASE_CONFIG
 from datetime import datetime
+
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# Initialize Firebase using the config from the file
+cred = credentials.Certificate(FIREBASE_CONFIG)
+firebase_admin.initialize_app(cred)
+
+# Access Firestore
+db = firestore.client()
 
 app = FastAPI()
 
@@ -29,48 +42,87 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(data: PredictionRequest):
-    """Train the model with the provided data"""
+    try:
+        ml_service = MLService()
+        ml_service.train(mock_records)  
+
+        weather_service = WeatherService()
+        input_datetime = data.target_datetime
+
+        target_datetime = datetime(
+            input_datetime['year'], input_datetime['month'], input_datetime['day'], input_datetime['hour']
+        )
+
+        tmp, aq = await weather_service.get_weather_and_air_quality(
+            latitude=data.latitude,
+            longitude=data.longitude,
+            target_datetime=target_datetime
+        )
+
+        data_dict = {
+            "temperature": tmp,
+            "pm10": aq['pm10'],
+            "carbon_dioxide": aq['carbon_dioxide'],
+            "nitrogen_dioxide": aq['nitrogen_dioxide'],
+            "dust": aq['dust']
+        }
+
+        environmental_data = EnvironmentalData(**data_dict)
+        
+        prediction, probability = ml_service.predict(environmental_data)
+
+        return PredictionResponse(
+            prediction=prediction,
+            probability=probability
+        )
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return JSONResponse(status_code=500, content={"message": str(e)})
 
 
-    ml_service = MLService()
-    ml_service.train(mock_records)  # Train with mock records
+collection_name = "training_data"
+
+@app.post("/create_data/")
+async def create_data(data: ModelTrainingData):
+    try:
+        db.collection(collection_name).add(data.dict())
+        return {"message": "Data created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/get_data/{user_id}")
+async def get_data(user_id: str):
+    try:
+        # Query Firestore using the filter keyword argument for where
+        docs = db.collection(collection_name).where("user_id", "==", user_id).stream()
+
+        # Check if no documents exist for the given user_id
+        documents = [doc.to_dict() for doc in docs]
+        if not documents:
+            raise HTTPException(status_code=404, detail="Data not found for this user")
+
+        # Return all documents found for this user
+        return {"user_id": user_id, "data": documents}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-    weather_service = WeatherService()
-    input_datetime = data.target_datetime
+@app.delete("/delete_data/{user_id}")
+async def delete_data(user_id: str):
+    try:
+        docs = db.collection(collection_name).where("user_id", "==", user_id).stream()
 
-    target_datatime = datetime(input_datetime['year'], input_datetime['month'], input_datetime['day'], input_datetime['hour'])
-    tmp, aq = await weather_service.get_weather_and_air_quality(
-        latitude=data.latitude,
-        longitude=data.longitude,
-        target_datetime=target_datatime
-    )
+        # Collect all document references to delete
+        doc_refs = [doc.id for doc in docs]
+        
+        if not doc_refs:
+            raise HTTPException(status_code=404, detail="No data found for this user to delete")
 
-    data = {
-        "temperature": tmp,
-        "pm10": aq['pm10'],
-        "carbon_dioxide": aq['carbon_dioxide'],
-        "nitrogen_dioxide": aq['nitrogen_dioxide'],
-        "dust": aq['dust']
-    }
+        for doc_ref in doc_refs:
+            db.collection(collection_name).document(doc_ref).delete()
 
-    prediction, probability = ml_service.predict(data)
+        return {"message": f"Successfully deleted {len(doc_refs)} document(s) for user {user_id}"}
 
-    return PredictionResponse(
-        prediction=prediction,  # Return prediction (True/False)
-        probability=probability  # Return probability for class 1 (asthma attack)
-    )
-
-@app.post('/weather')
-async def get_weather(data: dict = Body(...)):
-    weather_service = WeatherService()
-    input_datetime = data['target_datetime']
-
-    target_datatime = datetime(input_datetime['year'], input_datetime['month'], input_datetime['day'], input_datetime['hour'])
-    tmp, aq = await weather_service.get_weather_and_air_quality(
-        latitude=data['latitude'],
-        longitude=data['longitude'],
-        target_datetime=target_datatime
-    )
-
-    return {"Air Quality": aq, "Temperature": tmp}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
