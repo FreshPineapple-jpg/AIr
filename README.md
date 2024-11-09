@@ -1,4 +1,4 @@
-# AIr - AI-powered Asthma Companion 🌬️💡
+# AIr - AI-powered Asthma Companion💡
 
 ## Overview 🌍
 
