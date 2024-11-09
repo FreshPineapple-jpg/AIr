@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "expo": "^51.0.38",
+    "firebase": "^11.0.1",
+    "react-native": "0.74.5",
+    "typescript": "~5.3.3",
+    "@types/react": "~18.2.79",
+    "react-native-web": "~0.19.10",
+    "react-dom": "18.2.0",
+    "@expo/metro-runtime": "~3.2.3"
+  },
+  "devDependencies": {
+    "metro": "^0.81.0"
+  }
+}
