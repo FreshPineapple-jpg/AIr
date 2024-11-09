@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "@/styles/MapStyles";
-import { CollapsibleSectionProps } from "@/types/Styles";
+import { CollapsibleSectionProps } from "@/types/map/Types";
 
 export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     title,

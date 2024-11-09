@@ -1,9 +1,8 @@
-import { WeatherAPIData } from '../types/Weather';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ScrollView } from 'react-native';
 import { CollapsibleSection } from './CollapsibleCard';
 import { styles } from '../styles/MapStyles';
-import { SafetyZone } from '../types/Weather';
+import { SafetyZone, WeatherAPIData } from '@/types/map/Types';
 
 import React from 'react';
 
